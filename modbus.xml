@@ -1,0 +1,92 @@
+<modbus enabled="True" host="0.0.0.0" port="5020">
+    <device_info>
+        <VendorName>Siemens</VendorName>
+        <ProductCode>SIMATIC</ProductCode>
+        <MajorMinorRevision>S7-200</MajorMinorRevision>
+    </device_info>
+    <mode>serial</mode>
+    <delay>100</delay>
+    <slaves>
+        <slave id="0">
+            <blocks>
+                <block name="memoryModbusSlave0BlockA">
+                    <type>COILS</type>
+                    <starting_address>1</starting_address>
+                    <size>128</size>
+                    <content>memoryModbusSlave0BlockA</content>
+                </block>
+                <block name="memoryModbusSlave0BlockB">
+                    <type>DISCRETE_INPUTS</type>
+                    <starting_address>10001</starting_address>
+                    <size>32</size>
+                    <content>memoryModbusSlave0BlockB</content>
+                </block>
+            </blocks>
+        </slave>
+        <slave id="255">
+            <blocks>
+                <block name="memoryModbusSlave255BlockA">
+                    <type>COILS</type>
+                    <starting_address>1</starting_address>
+                    <size>128</size>
+                    <content>memoryModbusSlave255BlockA</content>
+                </block>
+                <block name="memoryModbusSlave255BlockB">
+                    <type>DISCRETE_INPUTS</type>
+                    <starting_address>10001</starting_address>
+                    <size>32</size>
+                    <content>memoryModbusSlave255BlockB</content>
+                </block>
+            </blocks>
+        </slave>
+        <slave id="1">
+            <blocks>
+                <block name="memoryModbusSlave1BlockA">
+                    <type>COILS</type>
+                    <starting_address>1</starting_address>
+                    <size>128</size>
+                    <content>memoryModbusSlave1BlockA</content>
+                </block>
+                <block name="memoryModbusSlave1BlockB">
+                    <type>DISCRETE_INPUTS</type>
+                    <starting_address>10001</starting_address>
+                    <size>32</size>
+                    <content>memoryModbusSlave1BlockB</content>
+                </block>
+            </blocks>
+        </slave>
+        <slave id="2">
+            <blocks>
+                <block name="memoryModbusSlave2BlockC">
+                    <type>ANALOG_INPUTS</type>
+                    <starting_address>30001</starting_address>
+                    <size>8</size>
+                    <content>memoryModbusSlave2BlockC</content>
+                </block>
+                <block name="memoryModbusSlave2BlockD">
+                    <type>HOLDING_REGISTERS</type>
+                    <starting_address>40001</starting_address>
+                    <size>8</size>
+                    <content>memoryModbusSlave2BlockD</content>
+                </block>
+            </blocks>
+        </slave>
+        <!-- 新增的火車信號燈控制 -->
+        <slave id="3">
+            <blocks>
+                <block name="trainSignalRedLight">
+                    <type>COILS</type>
+                    <starting_address>1</starting_address>
+                    <size>1</size>
+                    <content>trainSignalRedLight</content>
+                </block>
+                <block name="trainSignalGreenLight">
+                    <type>COILS</type>
+                    <starting_address>2</starting_address>
+                    <size>1</size>
+                    <content>trainSignalGreenLight</content>
+                </block>
+            </blocks>
+        </slave>
+    </slaves>
+</modbus>
