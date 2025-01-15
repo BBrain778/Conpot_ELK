@@ -1,0 +1,1 @@
+/etc/filebeat/filebeat.yml
