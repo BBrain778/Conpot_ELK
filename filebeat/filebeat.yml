@@ -154,7 +154,7 @@ output.elasticsearch:
   # Authentication credentials - either API key or username/password.
   #api_key: "id:api_key"
   username: "elastic"
-  password: "Lt+7*iQvfmPLqDT24B75"
+  password: "Lt+7*iQvfmPLqDT24B7"
 
   ssl.verification_mode: "none"
 
