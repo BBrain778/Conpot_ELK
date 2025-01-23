@@ -136,6 +136,10 @@ class ModbusServer(modbus.Server):
                     query, request, self.mode
                 )
                 logdata['request'] = codecs.encode(request, 'hex')
+                logdata['src_ip'] = address[0]  # 增加來源 IP
+                logdata['src_port'] = address[1]  # 增加來源 Port
+                logdata['dst_ip'] = sock.getsockname()[0]  # 增加目標 IP
+                logdata['dst_port'] = sock.getsockname()[1]  # 增加目標 Port
                 session.add_event(logdata)
 
                 logger.info(
@@ -157,7 +161,12 @@ class ModbusServer(modbus.Server):
                                 "event": "Train Signal Light Modified",
                                 "light_name": coil_name,
                                 "new_value": logdata.get('response_value'),
-                                "address": logdata.get('starting_address')
+                                "address": logdata.get('starting_address'),
+                                "function_code": logdata.get('function_code'),
+                                "src_ip": logdata.get('src_ip'),
+                                "src_port": logdata.get('src_port'),
+                                "dst_ip": logdata.get('dst_ip'),
+                                "dst_port": logdata.get('dst_port')
                             }
                             self.log_to_json(json_event)
 
