@@ -140,7 +140,13 @@ class ModbusServer(modbus.Server):
                 logdata['src_port'] = address[1]  # 增加來源 Port
                 logdata['dst_ip'] = sock.getsockname()[0]  # 增加目標 IP
                 logdata['dst_port'] = sock.getsockname()[1]  # 增加目標 Port
-                session.add_event(logdata)
+                
+                # 將所有 logdata 記錄到 JSON 日誌
+                self.log_to_json({
+                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "event": "Modbus Traffic",
+                    "data": logdata
+                })
 
                 logger.info(
                     'Modbus traffic from %s: %s (%s)',
