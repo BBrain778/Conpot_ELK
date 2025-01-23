@@ -87,10 +87,25 @@ class ModbusServer(modbus.Server):
     def log_to_json(self, event_data):
         """將事件記錄到 JSON 日誌文件"""
         try:
+            # 將 bytes 轉換為字符串，避免序列化錯誤
+            def convert_bytes(obj):
+                if isinstance(obj, bytes):
+                    return obj.decode('utf-8')
+                if isinstance(obj, dict):
+                    return {k: convert_bytes(v) for k, v in obj.items()}
+                if isinstance(obj, list):
+                    return [convert_bytes(i) for i in obj]
+                return obj
+    
+            event_data = convert_bytes(event_data)
+    
             with open(self.json_log_file, 'a') as log_file:
                 log_file.write(json.dumps(event_data) + '\n')
         except IOError as e:
             logger.error(f"Failed to write to JSON log file: {e}")
+        except TypeError as e:
+            logger.error(f"Failed to serialize JSON data: {e}")
+
 
     def handle(self, sock, address):
         sock.settimeout(self.timeout)
@@ -135,7 +150,7 @@ class ModbusServer(modbus.Server):
                 response, logdata = self._databank.handle_request(
                     query, request, self.mode
                 )
-                logdata['request'] = codecs.encode(request, 'hex')
+                logdata['request'] = codecs.encode(request, 'hex').decode('utf-8')  # 將 bytes 轉為字符串
                 logdata['src_ip'] = address[0]  # 增加來源 IP
                 logdata['src_port'] = address[1]  # 增加來源 Port
                 logdata['dst_ip'] = sock.getsockname()[0]  # 增加目標 IP
