@@ -109,15 +109,15 @@ class ModbusServer(modbus.Server):
 
     def handle(self, sock, address):
         sock.settimeout(self.timeout)
-
+    
         session = conpot_core.get_session('modbus', address[0], address[1], sock.getsockname()[0], sock.getsockname()[1])
-
+    
         self.start_time = time.time()
         logger.info(
             'New Modbus connection from %s:%s. (%s)',
             address[0], address[1], session.id)
         session.add_event({'type': 'NEW_CONNECTION'})
-
+    
         try:
             while True:
                 request = None
@@ -126,7 +126,7 @@ class ModbusServer(modbus.Server):
                 except Exception as e:
                     logger.error('Exception occurred in ModbusServer.handle() '
                                  'at sock.recv(): %s', str(e))
-
+    
                 if not request:
                     logger.info('Modbus client disconnected. (%s)', session.id)
                     session.add_event({'type': 'CONNECTION_LOST'})
@@ -144,84 +144,68 @@ class ModbusServer(modbus.Server):
                     new_byte = sock.recv(1)
                     request += new_byte
                 query = modbus_tcp.TcpQuery()
-
-                # logdata is a dictionary containing request, slave_id,
-                # function_code and response
+    
                 response, logdata = self._databank.handle_request(
                     query, request, self.mode
                 )
-                logdata['request'] = codecs.encode(request, 'hex').decode('utf-8')  # 將 bytes 轉為字符串
-                logdata['src_ip'] = address[0]  # 增加來源 IP
-                logdata['src_port'] = address[1]  # 增加來源 Port
-                logdata['dst_ip'] = sock.getsockname()[0]  # 增加目標 IP
-                logdata['dst_port'] = sock.getsockname()[1]  # 增加目標 Port
-                
-                # 將所有 logdata 記錄到 JSON 日誌
-                self.log_to_json({
-                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                    "event": "Modbus Traffic",
-                    "data": logdata
-                })
-
-                logger.info(
-                    'Modbus traffic from %s: %s (%s)',
-                    address[0], logdata, session.id)
-
-                # 檢查是否為信號燈的修改請求
+                logdata['request'] = codecs.encode(request, 'hex').decode('utf-8')
+                logdata['src_ip'] = address[0]
+                logdata['src_port'] = address[1]
+                logdata['dst_ip'] = sock.getsockname()[0]
+                logdata['dst_port'] = sock.getsockname()[1]
+    
+                # **🔍 檢查特定設備的變更，並記錄到 JSON 日誌**
                 if logdata.get('function_code') in [mdef.WRITE_SINGLE_COIL, mdef.WRITE_MULTIPLE_COILS]:
-                    if logdata.get('slave_id') == 3:  # 假設信號燈位於 Slave ID 3
-                        coil_name = None
-                        if logdata.get('starting_address') == 1:
-                            coil_name = "trainSignalRedLight"
-                        elif logdata.get('starting_address') == 2:
-                            coil_name = "trainSignalGreenLight"
-
-                        if coil_name:
-                            json_event = {
-                                "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-                                "event": "Train Signal Light Modified",
-                                "light_name": coil_name,
-                                "new_value": logdata.get('response_value'),
-                                "address": logdata.get('starting_address'),
-                                "function_code": logdata.get('function_code'),
-                                "src_ip": logdata.get('src_ip'),
-                                "src_port": logdata.get('src_port'),
-                                "dst_ip": logdata.get('dst_ip'),
-                                "dst_port": logdata.get('dst_port')
-                            }
-                            self.log_to_json(json_event)
-
+                    event_message = None
+    
+                    # 🚦 **信號燈控制器 (Slave ID 3)**
+                    if logdata.get('slave_id') == 3:
+                        if logdata.get('starting_address') == 1:  # 紅燈
+                            event_message = "Train Signal Change To RED" if logdata.get('response_value') == 1 else "Train Signal Change To GREEN"
+                        elif logdata.get('starting_address') == 2:  # 綠燈
+                            event_message = "Train Signal Change To GREEN" if logdata.get('response_value') == 1 else "Train Signal Change To RED"
+    
+                    # 🚧 **平交道控制器 (Slave ID 4)**
+                    elif logdata.get('slave_id') == 4:
+                        if logdata.get('starting_address') == 3:
+                            event_message = "CLOSE CrossingBarrier" if logdata.get('response_value') == 1 else "OPEN CrossingBarrier"
+    
+                    # 🔀 **道岔控制器 (Slave ID 5)**
+                    elif logdata.get('slave_id') == 5:
+                        if logdata.get('starting_address') == 4:
+                            event_message = "TrackPosition Switch To LEFT" if logdata.get('response_value') == 1 else "TrackPosition Switch To RIGHT"
+    
+                    # **記錄 JSON 日誌**
+                    if event_message:
+                        json_event = {
+                            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+                            "event": event_message,
+                            "slave_id": logdata.get('slave_id'),
+                            "address": logdata.get('starting_address'),
+                            "value": logdata.get('response_value'),
+                            "function_code": logdata.get('function_code'),
+                            "src_ip": logdata.get('src_ip'),
+                            "src_port": logdata.get('src_port'),
+                            "dst_ip": logdata.get('dst_ip'),
+                            "dst_port": logdata.get('dst_port')
+                        }
+                        self.log_to_json(json_event)
+                        logger.info("Logged event: %s", json_event)
+    
                 if response:
                     sock.sendall(response)
                     logger.info('Modbus response sent to %s', address[0])
                 else:
-                    # TODO:
-                    # response could be None under several different cases
-
-                    # MB serial connection addressing UID=0
-                    if (self.mode == 'serial') and (logdata['slave_id'] == 0):
-                        # delay is in milliseconds
-                        time.sleep(self.delay / 1000)
-                        logger.debug(
-                            'Modbus server\'s turnaround delay expired.')
-                        logger.info('Modbus connection terminated with client %s.',
-                                    address[0])
-                        session.add_event({'type': 'CONNECTION_TERMINATED'})
-                        sock.shutdown(socket.SHUT_RDWR)
-                        sock.close()
-                        break
-                    # Invalid addressing
-                    else:
-                        logger.info('Modbus client ignored due to invalid addressing.'
-                                    ' (%s)', session.id)
-                        session.add_event({'type': 'CONNECTION_TERMINATED'})
-                        sock.shutdown(socket.SHUT_RDWR)
-                        sock.close()
-                        break
+                    logger.info('Modbus client ignored due to invalid addressing. (%s)', session.id)
+                    session.add_event({'type': 'CONNECTION_TERMINATED'})
+                    sock.shutdown(socket.SHUT_RDWR)
+                    sock.close()
+                    break
+    
         except socket.timeout:
-            logger.debug(
-                'Socket timeout, remote: %s. (%s)', address[0], session.id)
+            logger.debug('Socket timeout, remote: %s. (%s)', address[0], session.id)
             session.add_event({'type': 'CONNECTION_LOST'})
+
 
     def start(self, host, port):
         self.host = host
