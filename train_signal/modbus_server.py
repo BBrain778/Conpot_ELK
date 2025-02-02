@@ -109,15 +109,15 @@ class ModbusServer(modbus.Server):
 
     def handle(self, sock, address):
         sock.settimeout(self.timeout)
-    
+
         session = conpot_core.get_session('modbus', address[0], address[1], sock.getsockname()[0], sock.getsockname()[1])
-    
+
         self.start_time = time.time()
         logger.info(
             'New Modbus connection from %s:%s. (%s)',
             address[0], address[1], session.id)
         session.add_event({'type': 'NEW_CONNECTION'})
-    
+
         try:
             while True:
                 request = None
@@ -125,8 +125,8 @@ class ModbusServer(modbus.Server):
                     request = sock.recv(7)
                 except Exception as e:
                     logger.error('Exception occurred in ModbusServer.handle() '
-                                 'at sock.recv(): %s', str(e))
-    
+                                'at sock.recv(): %s', str(e))
+
                 if not request:
                     logger.info('Modbus client disconnected. (%s)', session.id)
                     session.add_event({'type': 'CONNECTION_LOST'})
@@ -144,7 +144,7 @@ class ModbusServer(modbus.Server):
                     new_byte = sock.recv(1)
                     request += new_byte
                 query = modbus_tcp.TcpQuery()
-    
+
                 response, logdata = self._databank.handle_request(
                     query, request, self.mode
                 )
@@ -153,29 +153,32 @@ class ModbusServer(modbus.Server):
                 logdata['src_port'] = address[1]
                 logdata['dst_ip'] = sock.getsockname()[0]
                 logdata['dst_port'] = sock.getsockname()[1]
-    
-                # **🔍 檢查特定設備的變更，並記錄到 JSON 日誌**
+
+                # **🔍 記錄原本的 Modbus traffic**
+                logger.info("Modbus traffic from %s: %s (%s)", address[0], logdata, session.id)
+
+                # **🔍 檢查特定設備變更，新增 JSON 日誌**
                 if logdata.get('function_code') in [mdef.WRITE_SINGLE_COIL, mdef.WRITE_MULTIPLE_COILS]:
                     event_message = None
-    
+
                     # 🚦 **信號燈控制器 (Slave ID 3)**
                     if logdata.get('slave_id') == 3:
                         if logdata.get('starting_address') == 1:  # 紅燈
                             event_message = "Train Signal Change To RED" if logdata.get('response_value') == 1 else "Train Signal Change To GREEN"
                         elif logdata.get('starting_address') == 2:  # 綠燈
                             event_message = "Train Signal Change To GREEN" if logdata.get('response_value') == 1 else "Train Signal Change To RED"
-    
+
                     # 🚧 **平交道控制器 (Slave ID 4)**
                     elif logdata.get('slave_id') == 4:
                         if logdata.get('starting_address') == 3:
                             event_message = "CLOSE CrossingBarrier" if logdata.get('response_value') == 1 else "OPEN CrossingBarrier"
-    
+
                     # 🔀 **道岔控制器 (Slave ID 5)**
                     elif logdata.get('slave_id') == 5:
                         if logdata.get('starting_address') == 4:
                             event_message = "TrackPosition Switch To LEFT" if logdata.get('response_value') == 1 else "TrackPosition Switch To RIGHT"
-    
-                    # **記錄 JSON 日誌**
+
+                    # **記錄 JSON 日誌和終端機**
                     if event_message:
                         json_event = {
                             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -189,9 +192,11 @@ class ModbusServer(modbus.Server):
                             "dst_ip": logdata.get('dst_ip'),
                             "dst_port": logdata.get('dst_port')
                         }
+                        # **寫入 Conpot JSON 日誌**
                         self.log_to_json(json_event)
-                        logger.info("Logged event: %s", json_event)
-    
+                        # **顯示在終端機**
+                        logger.info("[Event] %s", json_event)
+
                 if response:
                     sock.sendall(response)
                     logger.info('Modbus response sent to %s', address[0])
@@ -201,7 +206,7 @@ class ModbusServer(modbus.Server):
                     sock.shutdown(socket.SHUT_RDWR)
                     sock.close()
                     break
-    
+
         except socket.timeout:
             logger.debug('Socket timeout, remote: %s. (%s)', address[0], session.id)
             session.add_event({'type': 'CONNECTION_LOST'})
