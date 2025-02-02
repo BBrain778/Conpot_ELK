@@ -197,15 +197,9 @@ class ModbusServer(modbus.Server):
                         # **顯示在終端機**
                         logger.info("[Event] %s", json_event)
 
-                if response and len(response) >= 6:
-                    # 解析 Modbus response，獲取地址和數值
-                    response_function_code = response[1]  # Function Code
-                    response_address = struct.unpack(">H", response[2:4])[0]  # Address
-                    response_value = struct.unpack(">H", response[4:6])[0]  # Value
-
-                    logdata['response_value'] = response_value
-                    logdata['response_address'] = response_address
-
+                if response:
+                    sock.sendall(response)
+                    logger.info('Modbus response sent to %s', address[0])
                 else:
                     logger.info('Modbus client ignored due to invalid addressing. (%s)', session.id)
                     session.add_event({'type': 'CONNECTION_TERMINATED'})
