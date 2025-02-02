@@ -71,7 +71,9 @@
                 </block>
             </blocks>
         </slave>
-        <!-- 新增的火車信號燈控制 -->
+
+        
+        <!-- 火車信號燈控制 -->
         <slave id="3">
             <blocks>
                 <block name="trainSignalRedLight">
@@ -88,5 +90,31 @@
                 </block>
             </blocks>
         </slave>
+
+        <!--平交道控制器 -->
+        <slave id="4">
+            <blocks>
+                <block name="railwayCrossingBarrier">
+                    <type>COILS</type>
+                    <starting_address>3</starting_address>
+                    <size>1</size>
+                    <content>railwayCrossingBarrier</content>
+                </block>
+            </blocks>
+        </slave>
+
+        <!--道岔控制器 -->
+        <slave id="5">
+            <blocks>
+                <block name="switchTrackPosition">
+                    <type>COILS</type>
+                    <starting_address>4</starting_address>
+                    <size>1</size>
+                    <content>switchTrackPosition</content>
+                </block>
+            </blocks>
+        </slave>
+
+        
     </slaves>
 </modbus>
