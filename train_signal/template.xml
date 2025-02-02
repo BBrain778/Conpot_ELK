@@ -72,13 +72,26 @@
             <key name="empty">
                 <value type="value">""</value>
             </key>
-            <!-- 新增的火車信號燈控制 -->
+            
+            <!-- 火車信號燈控制 -->
             <key name="trainSignalRedLight">
                 <value type="value">[random.randint(0,1)]</value> <!-- 0為關閉，1為打開 -->
             </key>
             <key name="trainSignalGreenLight">
                 <value type="value">[random.randint(0,1)]</value> <!-- 0為關閉，1為打開 -->
             </key>
+
+            <!-- 平交道控制 -->
+            <key name="railwayCrossingBarrier">
+                <value type="value">[random.randint(0,1)]</value> <!-- 0 = 開啟, 1 = 關閉 -->
+            </key>
+
+            <!-- 道岔控制 -->
+            <key name="switchTrackPosition">
+                <value type="value">[random.randint(0,1)]</value> <!-- 0 = 直行, 1 = 偏向側線 -->
+            </key>
+        
+            
         </key_value_mappings>
     </databus>
 </core>
