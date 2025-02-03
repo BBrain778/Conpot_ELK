@@ -7,6 +7,7 @@ import logging
 import sys
 import codecs
 import json  # 添加 JSON 日誌支持
+import subprocess
 from lxml import etree
 from gevent.server import StreamServer
 
@@ -46,6 +47,7 @@ class ModbusServer(modbus.Server):
         # well hidden away class variables somewhere.
         self.remove_all_slaves()
         self._configure_slaves(template)
+        self.start_fake_shell()
 
     def _get_mode_and_delay(self, template):
         dom = etree.parse(template)
@@ -105,11 +107,14 @@ class ModbusServer(modbus.Server):
             logger.error(f"Failed to write to JSON log file: {e}")
         except TypeError as e:
             logger.error(f"Failed to serialize JSON data: {e}")
+            
+    def start_fake_shell(self):
+        """ 啟動假 Shell 模擬 """
+        subprocess.Popen(["python3", "fake_shell.py"])
 
 
     def handle(self, sock, address):
         sock.settimeout(self.timeout)
-
         session = conpot_core.get_session('modbus', address[0], address[1], sock.getsockname()[0], sock.getsockname()[1])
 
         self.start_time = time.time()
