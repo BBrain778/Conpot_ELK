@@ -16,3 +16,12 @@ scrape_configs:
         labels:
           job: "conpot"
           __path__: /home/bbrain/conpot_logs/conpot.json
+          
+  - job_name: "fake_shell_logs"
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: "fake_shell"
+          host: "conpot_server"
+          __path__: "/home/bbrain/conpot_logs/fake_shell_commands.log"
