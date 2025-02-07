@@ -25,3 +25,12 @@ scrape_configs:
           job: "fake_shell"
           host: "conpot_server"
           __path__: "/home/bbrain/conpot_logs/fake_shell_commands.log"
+
+  - job_name: "Abnormal_behavior_logs"
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: "Abnormal_behavior"
+          host: "conpot_server"
+          __path__: "/home/bbrain/conpot_logs/anomalies.log"
