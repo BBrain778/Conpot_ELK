@@ -1,3 +1,6 @@
+conpot.cfg
+-->/home/conpot/.local/lib/python3.6/site-packages/conpot-0.6.0-py3.6.egg/conpot/conpot.cfg
+
 modbus.xml
 -->/home/conpot/.local/lib/python3.6/site-packages/conpot-0.6.0-py3.6.egg/conpot/templates/default/modbus/modbus.xml
 
