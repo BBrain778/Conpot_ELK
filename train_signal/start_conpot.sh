@@ -9,13 +9,11 @@ touch $USED_NAMES_FILE
 chmod 666 $USED_NAMES_FILE
 mkdir -p $BACKUP_DIR
 
-# 清空並設置異常檢測
 sudo iptables -t nat -F PREROUTING
-# 檢查 attacker_ips 是否存在，若不存在則創建
 if ! sudo ipset list attacker_ips >/dev/null 2>&1; then
     sudo ipset create attacker_ips hash:ip
 fi
-sudo ipset flush attacker_ips  # 清空現有 IP
+sudo ipset flush attacker_ips
 sudo iptables -t nat -I PREROUTING 1 -p tcp --dport 5020 -m recent --set --name MODBUS_ATTACK
 sudo iptables -t nat -I PREROUTING 2 -p tcp --dport 5020 -m recent --update --seconds 10 --hitcount 5 --name MODBUS_ATTACK -j SET --add-set attacker_ips src
 
@@ -32,17 +30,17 @@ while true; do
                 echo "$(date) - 偵測到攻擊者 IP: $IP，啟動容器: $CONPOT_NAME" >> $LOG_FILE
                 mkdir -p "$BACKUP_PATH"
                 PORT=5021
-                while sudo netstat -tuln | grep -q ":$PORT "; do
+                while sudo ss -tuln | grep -q ":$PORT "; do
                     PORT=$((PORT + 1))
                 done
-                docker run --name "$CONPOT_NAME" -v "$BACKUP_PATH":/conpot/data -p "$PORT:502" -p 161:161/udp -p 20000:20000 -d conpot_clean \
+                docker run --name "$CONPOT_NAME" -v "$BACKUP_PATH":/conpot/data -p "$PORT:5020" -p 161:161/udp -p 20000:20000 -d conpot_clean \
                     /home/conpot/.local/bin/conpot \
                     --template /home/conpot/.local/lib/python3.6/site-packages/conpot-0.6.0-py3.6.egg/conpot/templates/default/ \
                     --config /home/conpot/.local/lib/python3.6/site-packages/conpot-0.6.0-py3.6.egg/conpot/conpot.cfg
                 if [ $? -eq 0 ]; then
                     echo "$CONPOT_NAME" >> $USED_NAMES_FILE
                     CONTAINER_IP=$(docker inspect -f '{{.NetworkSettings.IPAddress}}' "$CONPOT_NAME")
-                    sudo iptables -t nat -I PREROUTING 3 -m set --match-set attacker_ips src -p tcp --dport 5020 -j DNAT --to-destination "$CONTAINER_IP:502"
+                    sudo iptables -t nat -I PREROUTING 3 -m set --match-set attacker_ips src -p tcp --dport 5020 -j DNAT --to-destination "$CONTAINER_IP:5020"
                     sudo iptables -t nat -I PREROUTING 4 -m set --match-set attacker_ips src -p udp --dport 161 -j DNAT --to-destination "$CONTAINER_IP:161"
                     sudo iptables -t nat -I PREROUTING 5 -m set --match-set attacker_ips src -p tcp --dport 20000 -j DNAT --to-destination "$CONTAINER_IP:20000"
                 else
