@@ -75,10 +75,10 @@ while true; do
                     # 獲取容器 IP
                     CONTAINER_IP=$(docker inspect -f '{{.NetworkSettings.IPAddress}}' "$CONPOT_NAME")
 
-                    # 設置 iptables 規則，將攻擊流量轉發至對應的蜜罐容器
-                    sudo iptables -t nat -I PREROUTING 3 -m set --match-set attacker_ips src -p tcp --dport 5020 -j DNAT --to-destination "$CONTAINER_IP:5020"
-                    sudo iptables -t nat -I PREROUTING 4 -m set --match-set attacker_ips src -p udp --dport 161 -j DNAT --to-destination "$CONTAINER_IP:161"
-                    sudo iptables -t nat -I PREROUTING 5 -m set --match-set attacker_ips src -p tcp --dport 20000 -j DNAT --to-destination "$CONTAINER_IP:20000"
+                    # 設置 iptables 規則，將特定攻擊者 IP 的流量轉發至對應容器
+                    sudo iptables -t nat -A PREROUTING -s "$IP" -p tcp --dport 5020 -j DNAT --to-destination "$CONTAINER_IP:5020"
+                    sudo iptables -t nat -A PREROUTING -s "$IP" -p udp --dport 161 -j DNAT --to-destination "$CONTAINER_IP:161"
+                    sudo iptables -t nat -A PREROUTING -s "$IP" -p tcp --dport 20000 -j DNAT --to-destination "$CONTAINER_IP:20000"
                 else
                     echo "$(date) - 啟動容器 $CONPOT_NAME 失敗" >> "$LOG_FILE"
                 fi
